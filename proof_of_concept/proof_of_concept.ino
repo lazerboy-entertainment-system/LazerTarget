@@ -44,6 +44,55 @@ void setup()
 void loop() 
 {
 
+  if (analogRead(4) >= LUX_THRESHOLD)
+  {
+    digitalWrite(PIN_LED, HIGH);
+    delay(50);
+    digitalWrite(PIN_LED, LOW);
+    delay(50);
+  }
+
+  if (analogRead(4) >= LUX_THRESHOLD)
+  {
+    digitalWrite(PIN_LED, HIGH);
+    delay(50);
+    digitalWrite(PIN_LED, LOW);
+    delay(50);
+  }
+
+  if (analogRead(4) >= LUX_THRESHOLD)
+  {
+    digitalWrite(PIN_LED, HIGH);
+    delay(50);
+    digitalWrite(PIN_LED, LOW);
+    delay(50);
+  }
+
+  if (analogRead(4) >= LUX_THRESHOLD)
+  {
+    digitalWrite(PIN_LED, HIGH);
+    delay(50);
+    digitalWrite(PIN_LED, LOW);
+    delay(50);
+  }
+
+  if (analogRead(4) >= LUX_THRESHOLD)
+  {
+    digitalWrite(PIN_LED, HIGH);
+    delay(50);
+    digitalWrite(PIN_LED, LOW);
+    delay(50);
+  }
+
+
+  
+  
+  
+  
+  
+  
+  
+  
   if (analogRead(ANALOG_PIN_LDR) >= LUX_THRESHOLD)
   {
 
