@@ -4,7 +4,7 @@
 ## About the LazerBoy Entertainment System:
 
 See [https://github.com/lazerboy-entertainment-system/doc](https://github.com/lazerboy-entertainment-system/doc) for more details.
-<br /><br />
+<br /><br /><br /><br />
 
 
 
@@ -13,7 +13,7 @@ See [https://github.com/lazerboy-entertainment-system/doc](https://github.com/la
 
 
 
-###### LazerTarget Prototype Test 20190328-A:
+#### LazerTarget Prototype Test 20190328-A:
 
 [![LazerTarget Prototype Test 20190328-A](https://img.youtube.com/vi/AYr0N-AYJgQ/0.jpg)](https://youtu.be/AYr0N-AYJgQ "LazerTarget Prototype Test 20190328-A")
 
@@ -22,7 +22,7 @@ Testing the LazerTarget Prototype - now with a 6x6 photoresistor matrix laser de
 
 <br />
 
-###### LazerTarget Proof-of-Concept with Custom Speech Test 20190327-A:
+#### LazerTarget Proof-of-Concept with Custom Speech Test 20190327-A:
 
 [![LazerTarget Proof-of-Concept with Custom Speech Test 20190327-A](https://img.youtube.com/vi/IToMWWZo5Yo/0.jpg)](https://www.youtube.com/watch?v=IToMWWZo5Yo "LazerTarget Proof-of-Concept with Custom Speech Test 20190327-A")
 
