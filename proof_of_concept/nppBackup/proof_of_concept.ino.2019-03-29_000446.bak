@@ -1,18 +1,11 @@
 // BRIAN SUMNER
-// KAMIL ADYLOV
-// IN AFFILIATION WITH PHI HUYNH
-// UCDENVER CSCI 4287 
-// EMBEDDED SYSTEMS PROGRAMMING
-// SALIM LAKHANI, PHD.
+// IN AFFILIATION WITH KAMIL ADYLOV AND PHI HUYNH
+// UCDENVER CSCI 4287
 // SPRING 2019
-
-// SPECIAL THANKS TO: 
-// DONALD VUKOVIC OF TINKERMILL
-
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERTARGET DRIVER
 // PROOF_OF_CONCEPT
-// VERSION: ALPHA_04
+// VERSION: ALPHA_03
 
 
 #include <Arduino.h>
@@ -51,7 +44,6 @@ void setup()
 void loop() 
 {
 
-  // THIS SIMULATES THE TIME OVERHEAD REQUIRED TO POLL 6 PINS
   if (analogRead(4) >= LUX_THRESHOLD)
   {
     digitalWrite(PIN_LED, HIGH);
@@ -94,7 +86,13 @@ void loop()
 
 
   
-  // THIS IS THE ONLY PIN THAT HAS A PHOTORESISTOR LDR
+  
+  
+  
+  
+  
+  
+  
   if (analogRead(ANALOG_PIN_LDR) >= LUX_THRESHOLD)
   {
 
@@ -105,7 +103,7 @@ void loop()
     voice.say(spHIT, false);
     
     
-    // BLINK LED WITH BLOCKING DELAY
+    // BLINK LED
     for (int i = 0; i < 8; ++i)
     {
       digitalWrite(PIN_LED, HIGH);
@@ -115,7 +113,4 @@ void loop()
     }
     
   }
-
-  
-// END LOOP  
 }
