@@ -5,8 +5,8 @@
 // SPRING 2019
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERTARGET DRIVER
-// PROTOTYPE
-// VERSION: ALPHA_05
+// LDR_CALIBRATOR
+// VERSION: ALPHA_06
 
 
 #include <Arduino.h>
@@ -191,7 +191,7 @@ void loop()
     Serial.print(tempHiVal);
         
     Serial.print("    ON LINE:    ");
-    Serial.print(tempHiLine);
+    Serial.println(tempHiLine);
         
 
 //    Serial.print("LINE 4 =  ");
