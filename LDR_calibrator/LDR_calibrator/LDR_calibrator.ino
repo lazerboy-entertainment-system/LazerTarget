@@ -6,7 +6,7 @@
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERTARGET DRIVER
 // LDR_CALIBRATOR
-// VERSION: ALPHA_06
+// VERSION: ALPHA_07
 
 
 #include <Arduino.h>
@@ -17,12 +17,12 @@
 #define PIN_SPEAKER       3
 #define PIN_LED           13
      
-#define LUX_THRESHOLD_0     250
-#define LUX_THRESHOLD_1     250
-#define LUX_THRESHOLD_2     250
-#define LUX_THRESHOLD_3     250
-#define LUX_THRESHOLD_4     250
-#define LUX_THRESHOLD_5     250
+#define LUX_THRESHOLD_0     280
+#define LUX_THRESHOLD_1     280
+#define LUX_THRESHOLD_2     280
+#define LUX_THRESHOLD_3     280
+#define LUX_THRESHOLD_4     280
+#define LUX_THRESHOLD_5     280
 
 
 Talkie voice;
