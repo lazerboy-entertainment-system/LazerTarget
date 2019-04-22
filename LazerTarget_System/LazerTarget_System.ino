@@ -65,7 +65,7 @@ const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER
 
 
 // array of eight general purpose timer32_t records
-volatile timer32_t timer_gps[8] = {0, 0, 31, 0};
+volatile timer32_t timer_gpArray[8] = {0, 0, 31, 0};
 
 
 // FORWARD DECLARATIONS:
@@ -78,13 +78,13 @@ void blinkBlueLED();    // BLINKS THE BLUE LED
 
 bool isRoomTooBright();  // RETURN TRUE IF ROOM IS TOO BRIGHT FOR PLAYING THE GAME
 
-void timer_start(timer32_t timerNumber);                              // sets enabled flag for gp timer
-void timer_stop(timer32_t timerNumber);                               // clears enabled flag for gp timer
-void timer_setCount(timer32_t timerNumber, uint32_t count );          // sets count
-void timer_setMaxCount(timer32_t timerNumber, uint32_t maxCount);    // sets maxCount
-void timer_setDoEvent(timer32_t timerNumber);                        // sets doEvent flag
-void timer_clearDoEvent(timer32_t *timerNumber);                     // clears doEvent flag
-bool timer_isActive(timer32_t timerNumber);                         // returns true if timer is enabled and greater than 0
+void timer_start(int timerNumber);                              // sets enabled flag for gp timer
+void timer_stop(int timerNumber);                               // clears enabled flag for gp timer
+void timer_setCount(int timerNumber, uint32_t count );          // sets count
+void timer_setMaxCount(int timerNumber, uint32_t maxCount);    // sets maxCount
+void timer_setDoEvent(int timerNumber);                        // sets doEvent flag
+void timer_clearDoEvent(int timerNumber);                     // clears doEvent flag
+bool timer_isActive(int timerNumber);                         // returns true if timer is enabled and greater than 0
 
 
 
@@ -151,8 +151,8 @@ void loop()
   if (timer_btnDebounce.flag_doEvent)  {
 
     if (digitalRead(PIN_SWITCH_BTN) == LOW) {
-      timer_clearDoEvent(&timer_btnDebounce);
-      timer_setCount(&timer_btnDebounce, BTN_DEBOUNCE_TIME);
+      timer_btnDebounce.flag_doEvent = false;
+      timer_btnDebounce.count = BTN_DEBOUNCE_TIME;
       flag_isBtnEnabled = true;
     }
   }
@@ -190,9 +190,8 @@ void ISR_BTN_PRESSED() {
   if (flag_isBtnEnabled) {
     flag_isBtnEnabled = false;
 
-    flag_isBtnPressed = true;
-
     timer_btnDebounce.flag_isEnabled = true;
+    flag_isBtnPressed = true;
   }
 }
 
@@ -215,46 +214,42 @@ ISR(TIMER2_COMPA_vect)
 }
 
 // sets enabled flag for gp timer
-void timer_start(timer32_t *timerNumber) {
-  timerNumber->flag_isEnabled = true;
+void timer_start(int timerNumber) {
+  timer_gpArray[timerNumber].flag_isEnabled = true;
 
 }
 
 // clears enabled flag for gp timer
-void timer_stop(timer32_t *timerNumber) {
-  timerNumber->flag_isEnabled = false;
+void timer_stop(int timerNumber) {
+  timer_gpArray[timerNumber].flag_isEnabled = false;
 
 }
 
 // sets count
-void timer_setCount(timer32_t *timerNumber, uint32_t count) {
-  timerNumber->count = count;
+void timer_setCount(int timerNumber, uint32_t count) {
+  timer_gpArray[timerNumber].count = count;
 }
 
 // sets maxCount
-void timer_setMaxCount(timer32_t *timerNumber, uint32_t maxCount) {
-  timerNumber->maxCount = maxCount;
+void timer_setMaxCount(int timerNumber, uint32_t maxCount) {
+  timer_gpArray[timerNumber].maxCount = maxCount;
 }
 
 // sets doEvent flag
-void timer_setDoEvent(timer32_t *timerNumber) {
-  timerNumber->flag_doEvent = true;
-}
-
 void timer_setDoEvent(int timerNumber) {
-  timerArray[timerNumber].flag_doEvent = true;
+  timer_gpArray[timerNumber].flag_doEvent = true;
 }
 
 
 // clears doEvent flag
-void timer_clearDoEvent(timer32_t *timerNumber) {
-  timerNumber->flag_doEvent = false;
+void timer_clearDoEvent(int timerNumber) {
+  timer_gpArray[timerNumber].flag_doEvent = false;
 }
 
 // returns true if timer is enabled and greater than 0
-bool timer_isActive(timer32_t *timerNumber) {
+bool timer_isActive(int timerNumber) {
 
-  if (timerNumber->flag_isEnabled && timerNumber->count > 0)
+  if (timer_gpArray[timerNumber].flag_isEnabled && timer_gpArray[timerNumber].count > 0)
     return true;
 
   else return false;
