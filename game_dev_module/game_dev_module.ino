@@ -14,7 +14,7 @@
 // INCLUDES
 #include <Arduino.h>
 
-// #include "talkie.h"
+#include "talkie.h"
 #include "vocab.h"
 
 // CONSTANT DEFINITIONS
@@ -45,7 +45,7 @@
 
 // ------------------------------------------------------------------------------------------------------
 // VOICE OBJECT FOR SPEECH / AUDIO OUTPUT
-// Talkie voice;
+Talkie voice;
 
 
 // TYPE DEFINITIONS
@@ -130,7 +130,7 @@ void setup()
   // ENABLE INTERRUPTS
   sei();
 
-  //  voice.say(spINTRO);
+  voice.say(spINTRO);
 
   Serial.println("FINISHED INITIALIZING TARGET");
   flag_isBtnPressed = false;
@@ -156,6 +156,31 @@ void loop()
       flag_isBtnEnabled = true;
     }
   }
+
+
+
+  if (isTargetHit())
+  {
+    // INDICATE HIT OCCURRED
+
+
+    // OUTPUT SPEECH FOR HIT EVENT
+    // NOTE: USE 'false' ARGUMENT FOR NON-BLOCKING SPEECH
+    voice.say(spHIT, false);
+    // voice.say(spGREAT2, false);
+
+
+    // OUTPUT MESSAGE TO SERIAL CONSOLE
+    Serial.println("HIT");
+
+
+    // BLINK LED
+    blinkGreenLED();
+
+
+    // END IF
+  }
+
 
 }
 
@@ -216,6 +241,11 @@ void timer_setDoEvent(timer32_t *timerNumber) {
   timerNumber->flag_doEvent = true;
 }
 
+void timer_setDoEvent(int timerNumber) {
+  timerArray[timerNumber].flag_doEvent = true;
+}
+
+
 // clears doEvent flag
 void timer_clearDoEvent(timer32_t *timerNumber) {
   timerNumber->flag_doEvent = false;
@@ -229,4 +259,80 @@ bool timer_isActive(timer32_t *timerNumber) {
 
   else return false;
 
+}
+
+
+
+// RETURN TRUE IF THE TARGET HAS BEEN HIT
+bool isTargetHit()
+{
+  bool result = false;
+
+  // READ ANALOG PIN 6 TIMES TO EMULATE FULL PROTOTYPE TIMING
+  if (analogRead(PIN_GDM_LDR) >= LUX_THRESHOLD_GDM_LDR)
+  {
+    result = true;
+  }
+  if (analogRead(PIN_GDM_LDR) >= LUX_THRESHOLD_GDM_LDR)
+  {
+    result = true;
+  }
+  if (analogRead(PIN_GDM_LDR) >= LUX_THRESHOLD_GDM_LDR)
+  {
+    result = true;
+  }
+  if (analogRead(PIN_GDM_LDR) >= LUX_THRESHOLD_GDM_LDR)
+  {
+    result = true;
+  }
+  if (analogRead(PIN_GDM_LDR) >= LUX_THRESHOLD_GDM_LDR)
+  {
+    result = true;
+  }
+  if (analogRead(PIN_GDM_LDR) >= LUX_THRESHOLD_GDM_LDR)
+  {
+    result = true;
+  }
+
+  return result;
+}
+
+
+// BLINKS THE RED LED
+void blinkRedLED()
+{
+  // BLINK LED
+  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
+  {
+    digitalWrite(PIN_LED_RED, HIGH);
+    delay(LED_BLINK_DELAY);
+    digitalWrite(PIN_LED_RED, LOW);
+    delay(LED_BLINK_DELAY);
+  }
+}
+
+// BLINKS THE GREEN LED
+void blinkGreenLED()
+{
+  // BLINK LED
+  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
+  {
+    digitalWrite(PIN_LED_RED, HIGH);
+    delay(LED_BLINK_DELAY);
+    digitalWrite(PIN_LED_RED, LOW);
+    delay(LED_BLINK_DELAY);
+  }
+}
+
+// BLINKS THE BLUE LED
+void blinkBlueLED()
+{
+  // BLINK LED
+  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
+  {
+    digitalWrite(PIN_LED_RED, HIGH);
+    delay(LED_BLINK_DELAY);
+    digitalWrite(PIN_LED_RED, LOW);
+    delay(LED_BLINK_DELAY);
+  }
 }
