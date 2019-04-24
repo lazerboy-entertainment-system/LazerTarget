@@ -24,7 +24,7 @@
 #define PIN_SPEAKER       3
 
 #define PIN_LED_RED       13
-#define PIN_LED_GREEN     13
+#define PIN_LED_GREEN     6
 #define PIN_LED_BLUE      13
 
 #define PIN_GDM_LDR       14    // THIS IS ANALOG PIN A0
@@ -54,10 +54,10 @@ Talkie voice;
 typedef struct timer32_t timer32_t;
 struct timer32_t
 {
-  bool flag_isEnabled     : 1;
+bool flag_isEnabled     : true;
   uint32_t count          : 31;
   uint32_t maxCount       : 31;
-  bool flag_doEvent       : 1;
+bool flag_doEvent       : true;
 };
 
 // GLOBAL CONSTANTS
@@ -68,6 +68,9 @@ const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER
 // array of eight general purpose timer32_t records
 volatile timer32_t timer_gpArray[8] = {0, 0, 31, 0};
 volatile timer32_t timer_btnDebounce = {false, 0, BTN_DEBOUNCE_TIME , false};
+
+volatile timer32_t timer_ledOn = {false, 0, 0 , false};
+volatile timer32_t timer_ledOff = {false, 0, 0 , false};
 
 // -----------------------------------------------------------------------------------------------------------------------------------------
 volatile bool flag_isBtnEnabled = false;
@@ -104,7 +107,7 @@ void setup()
 
 
   FastLED.addLeds<WS2812, PIN_LED, RGB>(leds, NUM_LEDS);
-// FastLED.setBrightness(1);
+  // FastLED.setBrightness(1);
 
   // DISABLE INTERRUPTS
   cli();
@@ -153,16 +156,15 @@ void setup()
 void loop()
 {
 
-  leds[0] = CRGB::Red;
-  FastLED.show();
-  delay(1000);
 
-  leds[0] = CRGB::Black;
-  FastLED.show();
-  delay(1000);
+  //  delay(1000);
+  //
+  //  leds[0] = CRGB::Black;
+  //  FastLED.show();
+  //  delay(1000);
 
 
-  
+
   if (timer_btnDebounce.flag_doEvent)  {
     if (digitalRead(PIN_SWITCH_BTN) == HIGH) {
       timer_btnDebounce.flag_doEvent = false;
@@ -198,13 +200,11 @@ void loop()
           // BLINK LED
           //blinkGreenLED();
 
-
-
-        }       // END IF
+        }
         break;
       }
 
-    case GAME1: {                                     // Duck Duck game mode                                         
+    case GAME1: {                                     // Duck Duck Goose game mode
 
         Serial.println("Game Mode1....");
 
@@ -226,10 +226,10 @@ void loop()
         break;
       }
 
-//          default:
-//            Serial.println("Game Mode DEFAULT....");
-//            voice.say(spGREAT2);
-//            game_mode = -1;
+    default:
+      Serial.println("Game Mode DEFAULT....");
+      voice.say(spGREAT2);
+      game_mode = 0;
   }
 
 
@@ -251,6 +251,11 @@ void ISR_BTN_PRESSED() {
     flag_activateGameModeVoice = true;
 
 
+    // enable ledOn timer
+    timer_ledOn.flag_isEnabled = true;
+
+
+
   }
 
 }
@@ -270,10 +275,15 @@ ISR(TIMER0_COMPA_vect)
       --timer_btnDebounce.count;
   }
 
-  //  if (isTargetHit()) {
-  //    flag_targetHit = true;
-  //   // Serial.println("HIT00000");
-  //  }
+  if (timer_ledOn.flag_isEnabled) {
+    if (timer_ledOn.count <= 0) {
+      timer_ledOn.flag_isEnabled = false;
+      timer_ledOn.flag_doEvent = true;
+    }
+    else
+      --timer_ledOn.count;
+  }
+
 }
 
 // sets enabled flag for gp timer
@@ -319,85 +329,29 @@ bool timer_isActive(uint32_t timerNumber) {
 }
 
 // RETURN TRUE IF THE TARGET HAS BEEN HIT
-bool isTargetHit() {
+/*bool isTargetHit() {
 
   if (analogRead(0) >= LUX_THRESHOLD_GDM_LDR)
-    return true;
+   return true;
 
   if (analogRead(1) >= LUX_THRESHOLD_GDM_LDR)
-    return true;
+   return true;
 
   if (analogRead(2) >= LUX_THRESHOLD_GDM_LDR)
-    return true;
+   return true;
 
   if (analogRead(3) >= LUX_THRESHOLD_GDM_LDR)
-    return true;
+   return true;
 
   if (analogRead(4) >= LUX_THRESHOLD_GDM_LDR)
-    return true;
+   return true;
 
   if (analogRead(5) >= LUX_THRESHOLD_GDM_LDR)
-    return true;
+   return true;
 
   if (analogRead(6) >= LUX_THRESHOLD_GDM_LDR)
-    return true;
+   return true;
 
-  return false;
-}
-
-
-// BLINKS THE RED LED
-void blinkRedLED()
-{
-  // BLINK LED
-  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
-  {
-    digitalWrite(PIN_LED_RED, HIGH);
-    delay(LED_BLINK_DELAY);
-    digitalWrite(PIN_LED_RED, LOW);
-    delay(LED_BLINK_DELAY);
-  }
-}
-
-// BLINKS THE GREEN LED
-void blinkGreenLED()
-{
-  // BLINK LED
-  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
-  {
-    digitalWrite(PIN_LED_RED, HIGH);
-    delay(LED_BLINK_DELAY);
-    digitalWrite(PIN_LED_RED, LOW);
-    delay(LED_BLINK_DELAY);
-  }
-}
-
-// BLINKS THE BLUE LED
-void blinkBlueLED() {
-
-  // BLINK LED
-  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
-  {
-    digitalWrite(PIN_LED_RED, HIGH);
-    delay(LED_BLINK_DELAY);
-    digitalWrite(PIN_LED_RED, LOW);
-    delay(LED_BLINK_DELAY);
-  }
-}
-
-
-
-bool isRoomTooBright() {
-
-  bool flag = false;
-
-  int LDR_register = 0;
-
-  for (int i = 0; i < NUMBER_OF_GDM_LDRS; ++i) {
-    if (analogRead(i) >= LUX_THRESHOLD_GDM_LDR) {
-      LDR_register |= (LDR_register << (i + 1));
-    }
-  }
 
   //  if (analogRead(0) >= LUX_THRESHOLD_GDM_LDR)
   //    LDR_register |= B00000001;
@@ -419,12 +373,90 @@ bool isRoomTooBright() {
 
 
 
+  return false;
+  }
+*/
+
+// BLINKS THE RED LED
+void blinkRedLED()
+{
+  // BLINK LED
+  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
+  {
+    digitalWrite(PIN_LED_RED, HIGH);
+    delay(LED_BLINK_DELAY);
+    digitalWrite(PIN_LED_RED, LOW);
+    delay(LED_BLINK_DELAY);
+  }
+}
+
+// BLINKS THE GREEN LED
+void blinkGreenLED()
+{
+
+  leds[0] = CRGB::Green;
+  FastLED.show();
+
+
+  // BLINK LED
+  //  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
+  //  {
+  //    digitalWrite(PIN_LED_RED, HIGH);
+  //    delay(LED_BLINK_DELAY);
+  //    digitalWrite(PIN_LED_RED, LOW);
+  //    delay(LED_BLINK_DELAY);
+  //  }
+}
+
+// BLINKS THE BLUE LED
+void blinkBlueLED() {
+
+  // BLINK LED
+  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
+  {
+    digitalWrite(PIN_LED_RED, HIGH);
+    delay(LED_BLINK_DELAY);
+    digitalWrite(PIN_LED_RED, LOW);
+    delay(LED_BLINK_DELAY);
+  }
+}
+
+
+
+bool isTargetHit() {
+
+  bool flag = true;
+
+  int LDR_register = 0;
+
+    if (analogRead(0) >= LUX_THRESHOLD_GDM_LDR)
+      LDR_register |= B00000001;
+  
+    if (analogRead(1) >= LUX_THRESHOLD_GDM_LDR)
+      LDR_register |= B00000010;
+  
+    if (analogRead(2) >= LUX_THRESHOLD_GDM_LDR)
+      LDR_register |= B00000100;
+  
+    if (analogRead(3) >= LUX_THRESHOLD_GDM_LDR)
+      LDR_register |= B00001000;
+  
+    if (analogRead(4) >= LUX_THRESHOLD_GDM_LDR)
+      LDR_register |= B00010000;
+  
+    if (analogRead(5) >= LUX_THRESHOLD_GDM_LDR)
+      LDR_register |= B00100000;
+
+
+
   if (LDR_register == B00111111)
   {
     voice.say(spROOMS_TOO_BRIGHT);
     Serial.println("ROOM IS TOO BRIGHT");
-    flag = true;
+    flag = false;
   }
+  else if (LDR_register == 0)
+    flag = false;
 
 
   LDR_register = 0;
