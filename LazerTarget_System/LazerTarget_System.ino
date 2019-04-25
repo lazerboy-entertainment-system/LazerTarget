@@ -5,45 +5,40 @@
 // SPRING 2019
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERTARGET DRIVER
-// GAME DEVELOPMENT MODULE
-// VERSION: ALPHA_02
+// VERSION: ALPHA_03
 
 
 
 
 // INCLUDES
 #include <Arduino.h>
-
-
 #include "talkie.h"
 #include "FastLED.h"
 #include "vocab.h"
 #include "game_mode.h"
 
 // CONSTANT DEFINITIONS
-#define PIN_SPEAKER       3
+#define PIN_SPEAKER                   3
+#define PIN_LED_GREEN                 6
+#define PIN_GDM_LDR                   14    // THIS IS ANALOG PIN A0
+#define PIN_SWITCH_BTN                2     // button for switching between two game mode. 
 
-#define PIN_LED_RED       13
-#define PIN_LED_GREEN     6
-#define PIN_LED_BLUE      13
 
-#define PIN_GDM_LDR       14    // THIS IS ANALOG PIN A0
-
-#define PIN_SWITCH_BTN    2     // button for switching between two game mode. 
-#define PIN_LED           6
-#define LUX_THRESHOLD_GDM_LDR   280
-
-#define LED_BLINK_DELAY   80
-#define LED_BLINK_CYCLES  5
+#define LUX_THRESHOLD_GDM_LDR         280
 
 #define TIMER_INTERVAL_MILLISECONDS   4
 #define CPU_MHZ                       16
 #define TIMER_PRESCALAR               1024
+#define NUMBER_OF_GDM_LDRS            6
 
-#define NUMBER_OF_GDM_LDRS 6
+#define NUM_LEDS                      3
+#define LED_BLINK_CYCLES              4
+#define LED_DELAY_TIME                3
 
-#define NUM_LEDS 1
-#define NUMBER_OF_GP_TIMERS 8
+#define NUMBER_OF_GP_TIMERS           8
+
+
+#define BTN_DEBOUNCE_TIME             15   // debounce time for switch button
 
 // ------------------------------------------------------------------------------------------------------
 // VOICE OBJECT FOR SPEECH / AUDIO OUTPUT
@@ -54,30 +49,30 @@ Talkie voice;
 typedef struct timer32_t timer32_t;
 struct timer32_t
 {
-bool flag_isEnabled     : true;
-  uint32_t count          : 31;
-  uint32_t maxCount       : 31;
-bool flag_doEvent       : true;
+  uint32_t flag_isEnabled     : 1;
+  uint32_t count              : 31;
+  uint32_t maxCount           : 31;
+  uint32_t flag_doEvent       : 1;
 };
 
 // GLOBAL CONSTANTS
 const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER_INTERVAL_MILLISECONDS) - 1;
 
-#define BTN_DEBOUNCE_TIME 15   // debounce time whose value is 100ms
-
 // array of eight general purpose timer32_t records
 volatile timer32_t timer_gpArray[8] = {0, 0, 31, 0};
-volatile timer32_t timer_btnDebounce = {false, 0, BTN_DEBOUNCE_TIME , false};
+volatile timer32_t timer_btnDebounce = {0, 0, BTN_DEBOUNCE_TIME , 0};
 
-volatile timer32_t timer_ledOn = {false, 0, 0 , false};
-volatile timer32_t timer_ledOff = {false, 0, 0 , false};
+
+// timers for turning on and off the leds
+volatile timer32_t timer_ledOn = {0, LED_DELAY_TIME, LED_DELAY_TIME , 0};
+volatile timer32_t timer_ledOff = {0, LED_DELAY_TIME, LED_DELAY_TIME , 0};
 
 // -----------------------------------------------------------------------------------------------------------------------------------------
 volatile bool flag_isBtnEnabled = false;
 volatile int game_mode = 0;
 volatile bool flag_activateGameModeVoice = false;
-volatile bool flag_targetHit = false;
-volatile unsigned long lastTime = millis();                       // store current time in milliseconds after the program starts
+
+volatile int led_blinkCounter = LED_BLINK_CYCLES;      // counter of how many times leds will blink
 
 // -----------------------------------------------------------------------------------------------------------------------------------------
 // FORWARD DECLARATIONS:
@@ -91,7 +86,7 @@ void blinkBlueLED();    // BLINKS THE BLUE LED
 bool isRoomTooBright();  // RETURN TRUE IF ROOM IS TOO BRIGHT FOR PLAYING THE GAME
 
 // -----------------------------------------------------------------------------------------------------------------------------------------
-CRGB leds[NUM_LEDS];
+CRGB leds[NUM_LEDS];     // array of leds
 
 
 // PROGRAM INITIALIZATION
@@ -106,8 +101,7 @@ void setup()
   pinMode(PIN_SWITCH_BTN, INPUT_PULLUP);                 // D2 input mode with pull-up resistor
 
 
-  FastLED.addLeds<WS2812, PIN_LED, RGB>(leds, NUM_LEDS);
-  // FastLED.setBrightness(1);
+  FastLED.addLeds<WS2812, PIN_LED_GREEN, RGB>(leds, NUM_LEDS);
 
   // DISABLE INTERRUPTS
   cli();
@@ -121,8 +115,7 @@ void setup()
   TCCR0B = 0;
   TCNT0  = 0;
 
-  // SET MAX TIMER COUNTER    Serial.print("mode: ");
-  Serial.println(game_mode);
+  // SET MAX TIMER COUNTER  
   OCR0A = MAX_TIMER_ISR_COUNT;
 
   // CLEAR TIMER ON COMPARE MATCH
@@ -146,9 +139,10 @@ void setup()
   flag_activateGameModeVoice = false;
   flag_isBtnEnabled = true;
 
-  Serial.print("mode: ");
-  Serial.println(game_mode);
-
+//  leds[0] = CRGB::Red;
+//  leds[1] = CRGB::Red;
+//  leds[2] = CRGB::Red;
+//  FastLED.show();
   Serial.println("FINISHED INITIALIZING TARGET");
 }
 
@@ -156,18 +150,9 @@ void setup()
 void loop()
 {
 
-
-  //  delay(1000);
-  //
-  //  leds[0] = CRGB::Black;
-  //  FastLED.show();
-  //  delay(1000);
-
-
-
   if (timer_btnDebounce.flag_doEvent)  {
     if (digitalRead(PIN_SWITCH_BTN) == HIGH) {
-      timer_btnDebounce.flag_doEvent = false;
+      timer_btnDebounce.flag_doEvent = 0;
       timer_btnDebounce.count = BTN_DEBOUNCE_TIME;
       flag_isBtnEnabled = true;
     }
@@ -177,6 +162,7 @@ void loop()
   // It notifies the player of current mode once after the switch btn is pressed
   // Then, one of the game types will be played according to the game mode
   switch (game_mode) {
+
     case GAME0: {                                     // Target Mode
 
         Serial.println("Game Mode0....");
@@ -186,8 +172,8 @@ void loop()
         flag_activateGameModeVoice = false;
 
 
-        if (isTargetHit())
-        {
+        if (isTargetHit()) {
+
           // INDICATE HIT OCCURRED
 
           // OUTPUT SPEECH FOR HIT EVENT
@@ -197,8 +183,12 @@ void loop()
           // OUTPUT MESSAGE TO SERIAL CONSOLE
           Serial.println("HIT");
 
-          // BLINK LED
-          //blinkGreenLED();
+
+          /* activate leds timer (e.g. timer_ledOn) 
+             and set the blink counter to default value
+          */
+          enableLED_timer();
+          led_blinkCounter = LED_BLINK_CYCLES;
 
         }
         break;
@@ -226,74 +216,130 @@ void loop()
         break;
       }
 
-    default:
+    default:                                         // Back to Target mode (Game0)
       Serial.println("Game Mode DEFAULT....");
       voice.say(spGREAT2);
       game_mode = 0;
   }
 
+  // turn the leds on the target ON and keep them ON until their timer counter( in the ISR function) does not reach to zero
+  if (timer_ledOn.flag_doEvent) {
+    timer_ledOn.flag_doEvent = 0;
 
+    //    leds[0] = CRGB::Blue;
+    //    leds[1] = CRGB::Green;
+
+    for (int i = 0; i < NUM_LEDS; ++i)
+      leds[i] = CRGB::Blue;
+
+    FastLED.show();
+  }
+
+  // turn the leds on the target off after some delay
+  // decrease led blink counter
+  if (timer_ledOff.flag_doEvent) {
+    timer_ledOff.flag_doEvent = 0;
+
+    for (int i = 0; i < NUM_LEDS; ++i)
+      leds[i] = CRGB::Black;
+
+    FastLED.show();
+
+    --led_blinkCounter;
+  }
 }
 
 // activates debounce timer and switches to the next game mode once the push button is pressed
 // In addition, when the button is pressed in order to switch to consequence game mode,
 // the voice will inform the player of what game mode is activated
+// Moreover, disable led timer
 void ISR_BTN_PRESSED() {
-
 
   if (flag_isBtnEnabled) {
     flag_isBtnEnabled = false;
 
-    timer_btnDebounce.flag_isEnabled = true;
+    timer_btnDebounce.flag_isEnabled = 1;
 
     game_mode += 1;
 
     flag_activateGameModeVoice = true;
 
-
-    // enable ledOn timer
-    timer_ledOn.flag_isEnabled = true;
-
-
+    disableLED_timers();
 
   }
-
 }
 
 
 // INTERRUPT SERVICE ROUTINE FOR TIMER1
 ISR(TIMER0_COMPA_vect)
 {
-
+  /* after the switch button is pressed, the debounce flag will be enabled
+    // the debounce timer will be disabled when its count reaches to zero
+    // its doEvent flag will be set
+  */
   if (timer_btnDebounce.flag_isEnabled) {
 
     if (timer_btnDebounce.count <= 0) {
-      timer_btnDebounce.flag_isEnabled = false;
-      timer_btnDebounce.flag_doEvent = true;
+      timer_btnDebounce.flag_isEnabled = 0;
+      timer_btnDebounce.flag_doEvent = 1;
     }
     else
       --timer_btnDebounce.count;
   }
 
-  if (timer_ledOn.flag_isEnabled) {
-    if (timer_ledOn.count <= 0) {
-      timer_ledOn.flag_isEnabled = false;
-      timer_ledOn.flag_doEvent = true;
+  // both timers (ledOn and ledOff) will be kept enabled and disabled until the blink counter reaches to zero
+  if (led_blinkCounter >= 0) {
+
+    if (timer_ledOn.flag_isEnabled == 1) {
+
+      if (timer_ledOn.count <= 0) {
+        timer_ledOn.flag_isEnabled = 0;
+
+        timer_ledOn.flag_doEvent = 1;
+
+        timer_ledOn.count = LED_DELAY_TIME;
+
+        timer_ledOff.flag_isEnabled = 1;
+
+      }
+      else
+        --timer_ledOn.count;
     }
-    else
-      --timer_ledOn.count;
+
+    // after the ledOn timer is expired, activate ledOff timer
+    // deactivate the ledoff timer after its counter reaches to zero
+    if (timer_ledOff.flag_isEnabled) {
+      if (timer_ledOff.count <= 0) {
+
+        timer_ledOff.flag_isEnabled = 0;
+
+        timer_ledOff.flag_doEvent = 1;
+
+        timer_ledOff.count = LED_DELAY_TIME;
+
+        timer_ledOn.flag_isEnabled = 1;
+
+      }
+      else
+        --timer_ledOff.count;
+    }
+
+    // reset enable flags of both timers (ledOn and ledOff) after leds blink the specified amount of time
+  } else if (led_blinkCounter == 0) {
+    timer_ledOff.flag_isEnabled = 0;
+    timer_ledOn.flag_isEnabled = 0;
   }
 
 }
 
 // sets enabled flag for gp timer
 void timer_start(uint32_t timerNumber) {
-  timer_gpArray[timerNumber].flag_isEnabled = true;
+  timer_gpArray[timerNumber].flag_isEnabled = 1;
 }
 
 // clears enabled flag for gp timer
 void timer_stop(uint32_t timerNumber) {
-  timer_gpArray[timerNumber].flag_isEnabled = false;
+  timer_gpArray[timerNumber].flag_isEnabled = 0;
 
 }
 
@@ -309,13 +355,13 @@ void timer_setMaxCount(int timerNumber, uint32_t maxCount) {
 
 // sets doEvent flag
 void timer_setDoEvent(uint32_t timerNumber) {
-  timer_gpArray[timerNumber].flag_doEvent = true;
+  timer_gpArray[timerNumber].flag_doEvent = 1;
 }
 
 
 // clears doEvent flag
 void timer_clearDoEvent(uint32_t timerNumber) {
-  timer_gpArray[timerNumber].flag_doEvent = false;
+  timer_gpArray[timerNumber].flag_doEvent = 0;
 }
 
 // returns true if timer is enabled and greater than 0
@@ -328,98 +374,26 @@ bool timer_isActive(uint32_t timerNumber) {
 
 }
 
-// RETURN TRUE IF THE TARGET HAS BEEN HIT
-/*bool isTargetHit() {
-
-  if (analogRead(0) >= LUX_THRESHOLD_GDM_LDR)
-   return true;
-
-  if (analogRead(1) >= LUX_THRESHOLD_GDM_LDR)
-   return true;
-
-  if (analogRead(2) >= LUX_THRESHOLD_GDM_LDR)
-   return true;
-
-  if (analogRead(3) >= LUX_THRESHOLD_GDM_LDR)
-   return true;
-
-  if (analogRead(4) >= LUX_THRESHOLD_GDM_LDR)
-   return true;
-
-  if (analogRead(5) >= LUX_THRESHOLD_GDM_LDR)
-   return true;
-
-  if (analogRead(6) >= LUX_THRESHOLD_GDM_LDR)
-   return true;
-
-
-  //  if (analogRead(0) >= LUX_THRESHOLD_GDM_LDR)
-  //    LDR_register |= B00000001;
-  //
-  //  if (analogRead(1) >= LUX_THRESHOLD_GDM_LDR)
-  //    LDR_register |= B00000010;
-  //
-  //  if (analogRead(2) >= LUX_THRESHOLD_GDM_LDR)
-  //    LDR_register |= B00000100;
-  //
-  //  if (analogRead(3) >= LUX_THRESHOLD_GDM_LDR)
-  //    LDR_register |= B00001000;
-  //
-  //  if (analogRead(4) >= LUX_THRESHOLD_GDM_LDR)
-  //    LDR_register |= B00010000;
-  //
-  //  if (analogRead(5) >= LUX_THRESHOLD_GDM_LDR)
-  //    LDR_register |= B00100000;
-
-
-
-  return false;
-  }
+/* enables or disables leds timer (e.g. timer_ledOn)
+   and reset blink counter and the led's timer' counter to their default values
 */
+void enableLED_timer() {
 
-// BLINKS THE RED LED
-void blinkRedLED()
-{
-  // BLINK LED
-  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
-  {
-    digitalWrite(PIN_LED_RED, HIGH);
-    delay(LED_BLINK_DELAY);
-    digitalWrite(PIN_LED_RED, LOW);
-    delay(LED_BLINK_DELAY);
-  }
+  timer_ledOn.count = LED_DELAY_TIME;
+  timer_ledOn.flag_isEnabled = 1;
 }
 
-// BLINKS THE GREEN LED
-void blinkGreenLED()
-{
 
-  leds[0] = CRGB::Green;
-  FastLED.show();
+/*
+  disables led timers (e.g timer_ledOn and timer_ledOff)
+  and set their counters to default values
+*/
+void disableLED_timers() {
 
-
-  // BLINK LED
-  //  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
-  //  {
-  //    digitalWrite(PIN_LED_RED, HIGH);
-  //    delay(LED_BLINK_DELAY);
-  //    digitalWrite(PIN_LED_RED, LOW);
-  //    delay(LED_BLINK_DELAY);
-  //  }
+  timer_ledOn.flag_isEnabled = timer_ledOff.flag_isEnabled = 0;
+  timer_ledOn.count = timer_ledOff.count = LED_DELAY_TIME;
 }
 
-// BLINKS THE BLUE LED
-void blinkBlueLED() {
-
-  // BLINK LED
-  for (int i = 0; i < LED_BLINK_CYCLES; ++i)
-  {
-    digitalWrite(PIN_LED_RED, HIGH);
-    delay(LED_BLINK_DELAY);
-    digitalWrite(PIN_LED_RED, LOW);
-    delay(LED_BLINK_DELAY);
-  }
-}
 
 
 
@@ -429,23 +403,23 @@ bool isTargetHit() {
 
   int LDR_register = 0;
 
-    if (analogRead(0) >= LUX_THRESHOLD_GDM_LDR)
-      LDR_register |= B00000001;
-  
-    if (analogRead(1) >= LUX_THRESHOLD_GDM_LDR)
-      LDR_register |= B00000010;
-  
-    if (analogRead(2) >= LUX_THRESHOLD_GDM_LDR)
-      LDR_register |= B00000100;
-  
-    if (analogRead(3) >= LUX_THRESHOLD_GDM_LDR)
-      LDR_register |= B00001000;
-  
-    if (analogRead(4) >= LUX_THRESHOLD_GDM_LDR)
-      LDR_register |= B00010000;
-  
-    if (analogRead(5) >= LUX_THRESHOLD_GDM_LDR)
-      LDR_register |= B00100000;
+  if (analogRead(0) >= LUX_THRESHOLD_GDM_LDR)
+    LDR_register |= B00000001;
+
+  if (analogRead(1) >= LUX_THRESHOLD_GDM_LDR)
+    LDR_register |= B00000010;
+
+  if (analogRead(2) >= LUX_THRESHOLD_GDM_LDR)
+    LDR_register |= B00000100;
+
+  if (analogRead(3) >= LUX_THRESHOLD_GDM_LDR)
+    LDR_register |= B00001000;
+
+  if (analogRead(4) >= LUX_THRESHOLD_GDM_LDR)
+    LDR_register |= B00010000;
+
+  if (analogRead(5) >= LUX_THRESHOLD_GDM_LDR)
+    LDR_register |= B00100000;
 
 
 
@@ -457,7 +431,6 @@ bool isTargetHit() {
   }
   else if (LDR_register == 0)
     flag = false;
-
 
   LDR_register = 0;
 
