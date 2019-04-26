@@ -1,5 +1,5 @@
-#define GAME0 0
-#define GAME1 1
+#define GAME_TARGET_PRACTICE   0
+#define GAME_DUCK_DUCK_GOOSE   1
 #define GAME2 2
 #define GAME3 3
 #define GAME4 4
