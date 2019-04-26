@@ -5,7 +5,7 @@
 // SPRING 2019
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERTARGET DRIVER
-// VERSION: ALPHA_05
+// VERSION: ALPHA_06
 
 
 
@@ -17,6 +17,7 @@
 #include "vocab.h"
 #include "game_mode.h"
 
+
 // CONSTANT DEFINITIONS
 #define PIN_SPEAKER                   3
 #define PIN_LED_GREEN                 12
@@ -24,7 +25,7 @@
 #define PIN_SWITCH_BTN                2     // button for switching between two game mode. 
 
 
-#define LUX_THRESHOLD_GDM_LDR         280
+#define LDR_LUX_THRESHOLD         280
 
 #define TIMER_INTERVAL_MILLISECONDS   10
 #define CPU_MHZ                       16
@@ -38,6 +39,7 @@
 #define NUMBER_OF_GP_TIMERS           8
 
 #define BTN_DEBOUNCE_COUNT            15   // debounce count for switch button
+
 
 // ------------------------------------------------------------------------------------------------------
 // VOICE OBJECT FOR SPEECH / AUDIO OUTPUT
@@ -86,6 +88,7 @@ void blinkGreenLED();   // BLINKS THE GREEN LED
 void blinkBlueLED();    // BLINKS THE BLUE LED
 
 bool isRoomTooBright();  // RETURN TRUE IF ROOM IS TOO BRIGHT FOR PLAYING THE GAME
+
 
 // -----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -161,6 +164,10 @@ void setup()
     Serial.println("FINISHED INITIALIZING TARGET");
 }
 
+
+// ------------------------------------------------------------------------------------------------------
+
+
 // MAIN PROGRAM LOOP
 void loop()
 {
@@ -182,7 +189,9 @@ void loop()
 
             // Duck Duck Goose game mode
             Serial.println("Game Mode1....");
-            voice.say(spGREAT2);
+            voice.say(spDUCK);
+            voice.say(spDUCK);
+            voice.say(spGOOSE);
             game_duck_duck_goose();
             break;
           
@@ -204,6 +213,10 @@ void loop()
 
 }
 
+
+// ------------------------------------------------------------------------------------------------------
+
+
 // activates debounce timer and switches to the next game mode once the push button is pressed
 // In addition, when the button is pressed in order to switch to consequence game mode,
 // the voice will inform the player of what game mode is activated
@@ -222,6 +235,9 @@ void ISR_BTN_PRESSED()
         disableLED_timers();
     }
 }
+
+
+// ------------------------------------------------------------------------------------------------------
 
 
 // INTERRUPT SERVICE ROUTINE FOR TIMER1
@@ -290,6 +306,10 @@ ISR(TIMER0_COMPA_vect)
 
 }
 
+
+// ------------------------------------------------------------------------------------------------------
+
+
 // sets enabled flag for gp timer
 void timer_start(uint8_t timerNumber) {
   timer_gpArray[timerNumber].flag_isEnabled = 1;
@@ -353,30 +373,28 @@ void disableLED_timers() {
 }
 
 
-
-
 bool isTargetHit() {
 
   bool flag = true;
 
   int LDR_register = 0;
 
-  if (analogRead(0) >= LUX_THRESHOLD_GDM_LDR)
+  if (analogRead(0) >= LDR_LUX_THRESHOLD)
     LDR_register |= B00000001;
 
-  if (analogRead(1) >= LUX_THRESHOLD_GDM_LDR)
+  if (analogRead(1) >= LDR_LUX_THRESHOLD)
     LDR_register |= B00000010;
 
-  if (analogRead(2) >= LUX_THRESHOLD_GDM_LDR)
+  if (analogRead(2) >= LDR_LUX_THRESHOLD)
     LDR_register |= B00000100;
 
-  if (analogRead(3) >= LUX_THRESHOLD_GDM_LDR)
+  if (analogRead(3) >= LDR_LUX_THRESHOLD)
     LDR_register |= B00001000;
 
-  if (analogRead(4) >= LUX_THRESHOLD_GDM_LDR)
+  if (analogRead(4) >= LDR_LUX_THRESHOLD)
     LDR_register |= B00010000;
 
-  if (analogRead(5) >= LUX_THRESHOLD_GDM_LDR)
+  if (analogRead(5) >= LDR_LUX_THRESHOLD)
     LDR_register |= B00100000;
 
 
@@ -389,7 +407,6 @@ bool isTargetHit() {
   else if (LDR_register == 0)
     flag = false;
 
-  LDR_register = 0;
 
   return flag;
 }
