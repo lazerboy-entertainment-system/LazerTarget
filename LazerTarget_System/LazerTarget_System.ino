@@ -5,7 +5,7 @@
 // SPRING 2019
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERTARGET DRIVER
-// VERSION: ALPHA_04
+// VERSION: ALPHA_05
 
 
 
@@ -134,7 +134,7 @@ void setup()
   
   
   
-//    voice.say(spINTRO, false);
+    voice.say(spINTRO, false);
   
     gameMode = -1;
     flag_isBtnEnabled = true;
