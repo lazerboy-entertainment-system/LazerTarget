@@ -1,8 +1,8 @@
-int game_target_practice()
+void game_targetPractice()
 {
     while (gameMode == GAME_TARGET_PRACTICE)
     {        
-        int ledIndex = 0;
+        ledIndex = 0;
         if (isTargetHit()) 
         {
             
@@ -16,24 +16,28 @@ int game_target_practice()
             Serial.println("HIT");
 
             ledIndex = 0;
-            while (++ledIndex <= LED_BLINK_CYCLES)
+            while (++ledIndex <= LED_FAST_BLINK_CYCLES)
             {
                 leds[0] = CRGB::Green;
                 leds[1] = CRGB::Green;
                 leds[2] = CRGB::Green;
                 leds[3] = CRGB::Green;
                 FastLED.show();
-                delay(LED_DELAY_TIME);
+
+                timer_delay(2, LED_FAST_DELAY_TIME);
+                while (timer_isActive(2));
                 
                 leds[0] = CRGB::Black;
                 leds[1] = CRGB::Black;
                 leds[2] = CRGB::Black;
                 leds[3] = CRGB::Black;
                 FastLED.show();
-                delay(LED_DELAY_TIME);
+
+                timer_delay(2, LED_FAST_DELAY_TIME);
+                while (timer_isActive(2));
             }              
         }
     }
     
-    return 0;
+    return;
 }
