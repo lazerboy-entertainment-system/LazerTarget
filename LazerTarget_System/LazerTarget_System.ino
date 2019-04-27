@@ -51,6 +51,10 @@
 #define LED_SLOW_BLINK_CYCLES         3
 #define LED_SLOW_DELAY_TIME           150
 
+#define LED_BRIGHTNESS_LOW            30
+#define LED_BRIGHTNESS_HIGH           255
+
+
 #define NUMBER_OF_GP_TIMERS           8
 
 #define BTN_DEBOUNCE_COUNT            15   // debounce count for switch button
@@ -169,7 +173,7 @@ void setup()
     {
         for (ledIndex = 0; ledIndex < NUM_LEDS; ++ledIndex)
         {
-            leds[ledIndex] = ColorFromPalette(RainbowColors_p, colorIndex, 255, LINEARBLEND);
+            leds[ledIndex] = ColorFromPalette(RainbowColors_p, colorIndex, LED_BRIGHTNESS_HIGH, LINEARBLEND);
             colorIndex += 30;
             FastLED.show();
         }
@@ -251,6 +255,14 @@ void ISR_BTN_PRESSED()
         timer_btnDebounce.flag_isEnabled = 1;
     
         ++gameMode;
+        
+        leds[0] = CRGB::Black;
+        leds[1] = CRGB::Black;
+        leds[2] = CRGB::Black;
+        leds[3] = CRGB::Black;
+        FastLED.setBrightness(LED_BRIGHTNESS_HIGH);
+        FastLED.show();
+    
     }
 }
 

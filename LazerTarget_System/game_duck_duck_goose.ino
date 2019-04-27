@@ -40,6 +40,13 @@ void game_duckDuckGoose()
 
         Serial.print("NUMBER OF DUCKS:  ");
         Serial.println(rand_num);
+
+        leds[0] = CRGB::Yellow;
+        leds[1] = CRGB::Yellow;
+        leds[2] = CRGB::Yellow;
+        leds[3] = CRGB::Yellow;
+        FastLED.setBrightness(LED_BRIGHTNESS_LOW);
+        FastLED.show();
         
         for (duckNumber = 0; duckNumber < rand_num; ++duckNumber)
         {
@@ -91,6 +98,13 @@ void game_duckDuckGoose()
         
         voice.say(spGOOSE, false);
 
+        leds[0] = CRGB::Blue;
+        leds[1] = CRGB::Blue;
+        leds[2] = CRGB::Blue;
+        leds[3] = CRGB::Blue;
+        FastLED.setBrightness(LED_BRIGHTNESS_LOW);
+        FastLED.show();
+
         timer_delay(1, gooseDelay);
         while (timer_isActive(1) && gameMode == GAME_DUCK_DUCK_GOOSE)
         {
@@ -100,6 +114,7 @@ void game_duckDuckGoose()
                 flag_success = true;
 
                 ledIndex = 0;
+                FastLED.setBrightness(LED_BRIGHTNESS_HIGH);
                 while (++ledIndex <= LED_FAST_BLINK_CYCLES)
                 {
                     leds[0] = CRGB::Green;
@@ -123,14 +138,43 @@ void game_duckDuckGoose()
             }
         }
         
-        timer_delay(3, roundDelay);
-        while (timer_isActive(3) && gameMode == GAME_DUCK_DUCK_GOOSE);
-
         if (flag_success)
         {
+            timer_delay(3, roundDelay);
+            while (timer_isActive(3) && gameMode == GAME_DUCK_DUCK_GOOSE);
+
             voice.say(spREADY, true);
         }
-        else return;
+        else 
+        {
+            ledIndex = 0;
+            FastLED.setBrightness(LED_BRIGHTNESS_HIGH);
+            while (++ledIndex <= LED_SLOW_BLINK_CYCLES)
+            {
+                leds[0] = CRGB::Red;
+                leds[1] = CRGB::Red;
+                leds[2] = CRGB::Red;
+                leds[3] = CRGB::Red;
+                FastLED.show();
+                
+                timer_delay(2, LED_SLOW_DELAY_TIME);
+                while (timer_isActive(2));
+                
+                leds[0] = CRGB::Black;
+                leds[1] = CRGB::Black;
+                leds[2] = CRGB::Black;
+                leds[3] = CRGB::Black;
+                FastLED.show();
+    
+                timer_delay(2, LED_SLOW_DELAY_TIME);
+                while (timer_isActive(2));
+            }     
+
+            timer_delay(3, roundDelay);
+            while (timer_isActive(3) && gameMode == GAME_DUCK_DUCK_GOOSE);
+
+            return;
+        }
     }
 
     return;
