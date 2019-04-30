@@ -4,8 +4,8 @@
 // UCDENVER CSCI 4287
 // SPRING 2019
 // LAZERBOY ENTERTAINMENT SYSTEM:
-// LAZERTARGET DRIVER
-// VERSION: BETA_01
+// LAZERTARGET ZL1 DRIVER
+// VERSION: BETA_02
 
 
 // ======================================================================================================
@@ -34,30 +34,38 @@
 #define PIN_LDR_3                     17
 #define PIN_LDR_4                     18
 #define PIN_LDR_5                     19
-#define PIN_SWITCH_BTN                2     // button for switching between two game mode. 
+#define PIN_BUTTON_SWITCH                2     // button for switching between two game mode. 
 
 
 #define LDR_LUX_THRESHOLD             280
 
-#define TIMER_INTERVAL_MILLISECONDS   10
-#define CPU_MHZ                       16
-#define TIMER_PRESCALAR               1024
+// NOTE:  OUR DYNAMIC MAX_TIMER_ISR_COUNT CALCULATION WAS BEHAVING ALARMINGLY INCONSISTENTLY
+//        FOR TIMER0, SO INSTEAD WE ARE EMULATING A TIMER OVERFLOW AND HAVE CALIBRATED THE
+//        TIMER INTERVAL FOR OUR DEVICE USING A STOPWATCH
+#define TIMER_INTERVAL_MILLISECONDS   16.3
+#define MAX_TIMER_ISR_COUNT           255
+
+//#define CPU_MHZ                       16
+//#define TIMER_PRESCALAR               1024
+//#define TIMER_CALIBRATION             1
 
 
 #define NUM_LEDS                      4
 
-#define LED_FAST_BLINK_CYCLES         5
-#define LED_FAST_DELAY_TIME           44
-#define LED_SLOW_BLINK_CYCLES         3
-#define LED_SLOW_DELAY_TIME           150
+#define LED_GP_TIMER_NUMBER           7
 
-#define LED_BRIGHTNESS_LOW            30
+#define LED_FAST_BLINK_CYCLES         5
+#define LED_FAST_DELAY_TIME           75
+#define LED_SLOW_BLINK_CYCLES         3
+#define LED_SLOW_DELAY_TIME           200
+
+#define LED_BRIGHTNESS_LOW            20
 #define LED_BRIGHTNESS_HIGH           255
 
 
 #define NUMBER_OF_GP_TIMERS           8
 
-#define BTN_DEBOUNCE_COUNT            15   // debounce count for switch button
+#define BUTTON_DEBOUNCE_COUNT            15   // debounce count for switch button
 
 
 // ======================================================================================================
@@ -78,7 +86,8 @@ struct timer32_t
 
 // GLOBAL CONSTANTS
 
-const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER_INTERVAL_MILLISECONDS) - 1;
+// SEE NOTE ABOVE WHY WE ARE NOT USING THIS CALCULATION
+//const uint32_t MAX_TIMER_ISR_COUNT = (uint32_t) ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER_INTERVAL_MILLISECONDS * TIMER_CALIBRATION);
 
 
 // ======================================================================================================
@@ -89,10 +98,11 @@ const double MAX_TIMER_ISR_COUNT = ((CPU_MHZ * 1000.0) / TIMER_PRESCALAR * TIMER
 // array of eight general purpose timer32_t records
 volatile timer32_t timer_gpArray[NUMBER_OF_GP_TIMERS];
 
-volatile timer32_t timer_btnDebounce = {0, 0, BTN_DEBOUNCE_COUNT};
+volatile timer32_t timer_buttonDebounce = {0, 0, BUTTON_DEBOUNCE_COUNT};
 volatile uint8_t gpTimerIndex = 0;
 
-volatile bool flag_isBtnEnabled = false;
+volatile bool flag_isButtonEnabled = false;
+//volatile uint8_t gameMode = GAME_TARGET_PRACTICE;
 volatile uint8_t gameMode = GAME_TARGET_PRACTICE;
 
 
@@ -122,10 +132,12 @@ void setup()
 
     Serial.begin(115200);
     Serial.println("INITIALIZING TARGET");
+    Serial.print("MAX_COUNT:  ");
+    Serial.println(MAX_TIMER_ISR_COUNT);
   
     // SET UP PIN MODES
     pinMode(PIN_SPEAKER, OUTPUT);
-    pinMode(PIN_SWITCH_BTN, INPUT_PULLUP);                 // D2 input mode with pull-up resistor
+    pinMode(PIN_BUTTON_SWITCH, INPUT_PULLUP);                 // D2 input mode with pull-up resistor
   
   
     FastLED.addLeds<WS2812, PIN_LEDS, RGB>(leds, NUM_LEDS);
@@ -133,8 +145,8 @@ void setup()
     // DISABLE INTERRUPTS
     cli();
   
-    // attach an interrupt on int0 and call ISR_BTN_PRESSED() when triggered
-    attachInterrupt(digitalPinToInterrupt(PIN_SWITCH_BTN), ISR_BTN_PRESSED, FALLING);
+    // attach an interrupt on int0 and call ISR_BUTTON_PRESSED() when triggered
+    attachInterrupt(digitalPinToInterrupt(PIN_BUTTON_SWITCH), ISR_BUTTON_PRESSED, FALLING);
   
   
     // CLEAR TIMER/COUNTER REGISTERS
@@ -160,7 +172,7 @@ void setup()
   
 
     // ENABLE THE ONLY BUTTON
-    flag_isBtnEnabled = true;
+    flag_isButtonEnabled = true;
 
   
     // SPEAK INTRO
@@ -179,13 +191,10 @@ void setup()
         }
     }
 
-    // RESET LEDS
-    for (ledIndex = 0; ledIndex < NUM_LEDS; ++ledIndex)
-    {
-        leds[ledIndex] = CRGB::Black;
-        FastLED.show();
-    }
 
+    // RESET LEDS
+    leds_setColor(CRGB::Black, LED_BRIGHTNESS_HIGH);
+    
   
     Serial.println("FINISHED INITIALIZING TARGET");
 
@@ -199,7 +208,7 @@ void setup()
 void loop()
 {
 
-    // It notifies the player of current mode once after the switch btn is pressed
+    // It notifies the player of current mode once after the switch button is pressed
     // Then, one of the game types will be played according to the game mode
     switch (gameMode) 
     {
@@ -215,19 +224,20 @@ void loop()
 
             // Duck Duck Goose game mode
             Serial.println("GAME:  DUCK DUCK GOOSE");
-            voice.say(spDUCK);
-            voice.say(spDUCK);
-            voice.say(spGOOSE);
+            if (gameMode == GAME_DUCK_DUCK_GOOSE) voice.say(spDUCK);
+            if (gameMode == GAME_DUCK_DUCK_GOOSE) voice.say(spDUCK);
+            if (gameMode == GAME_DUCK_DUCK_GOOSE) voice.say(spGOOSE);
             game_duckDuckGoose();
             break;
           
     
-//        case GAME2:
-//    
-//            // Game2
-//            Serial.println("Game Mode2....");
-//            voice.say(spREADY);
-//            break;
+        case GAME_DRAW:
+    
+            // Draw!
+            Serial.println("GAME:  DRAW!");
+            voice.say(spDRAW);
+            game_draw();
+            break;
     
         default:
           
@@ -237,6 +247,8 @@ void loop()
             gameMode = GAME_TARGET_PRACTICE;
     }
 
+    leds_setColor(CRGB::Black, LED_BRIGHTNESS_HIGH);
+    timer_delay(0, 1000);
 }
 
 
@@ -245,137 +257,66 @@ void loop()
 
 // INTERRUPT SERVICE ROUTINE FOR INPUT BUTTON
 // activates debounce timer and switches to the next game mode once the push button is pressed
-void ISR_BTN_PRESSED() 
+void ISR_BUTTON_PRESSED() 
 {
-    if (flag_isBtnEnabled) 
+    if (flag_isButtonEnabled) 
     {
-        flag_isBtnEnabled = false;
+        flag_isButtonEnabled = false;
     
-        timer_btnDebounce.count = BTN_DEBOUNCE_COUNT;
-        timer_btnDebounce.flag_isEnabled = 1;
+        timer_buttonDebounce.count = BUTTON_DEBOUNCE_COUNT;
+        timer_buttonDebounce.flag_isEnabled = 1;
     
         ++gameMode;
+
+        // LEDS ARE TURNED OFF IN LOOP
+//        leds_setColor(CRGB::Black, LED_BRIGHTNESS_HIGH);
+    
+    }
+}
+
+
+// ====================================================================================================== 
+
+void leds_setColor(CRGB color, uint8_t brightness)
+{
+    FastLED.setBrightness(brightness);
+    leds[0] = color;
+    leds[1] = color;
+    leds[2] = color;
+    leds[3] = color;
+    FastLED.show();  
+}
+
+
+// NOTE: TO AVOID HUGE HASSLES WITH THE COMPILER, THIS FUNCTION MUST BE IN THIS .INO FILE
+void leds_blinkColor(CRGB color, uint8_t brightness, uint8_t numCycles, uint32_t delayTime, uint8_t arg_gameMode)
+{
+  
+    FastLED.setBrightness(brightness);
+    
+    ledIndex = 0;
+    while (++ledIndex <= numCycles && gameMode == arg_gameMode)
+    {
+        leds[0] = color;
+        leds[1] = color;
+        leds[2] = color;
+        leds[3] = color;
+        FastLED.show();
+        
+        timer_delay(LED_GP_TIMER_NUMBER, delayTime);
+        while (timer_isActive(LED_GP_TIMER_NUMBER));
         
         leds[0] = CRGB::Black;
         leds[1] = CRGB::Black;
         leds[2] = CRGB::Black;
         leds[3] = CRGB::Black;
-        FastLED.setBrightness(LED_BRIGHTNESS_HIGH);
         FastLED.show();
-    
+
+        timer_delay(LED_GP_TIMER_NUMBER, delayTime);
+        while (timer_isActive(LED_GP_TIMER_NUMBER)); 
     }
 }
 
-
-// ====================================================================================================== 
-
-
-// INTERRUPT SERVICE ROUTINE FOR TIMER1
-ISR(TIMER0_COMPA_vect)
-{
-    // After the switch button is pressed, the debounce flag will be enabled
-    // The debounce timer will be disabled when its count reaches to zero
-    
-    if (timer_btnDebounce.flag_isEnabled) 
-    {
-        if (timer_btnDebounce.count <= 0) 
-        {
-                timer_btnDebounce.count = BTN_DEBOUNCE_COUNT;
-                timer_btnDebounce.flag_isEnabled = 0;
-                flag_isBtnEnabled = true;
-        }
-        else
-          --timer_btnDebounce.count;
-    }
-
-
-    // ISR IMPLEMENTATION FOR GENERAL PURPOSE TIMERS
-    for (gpTimerIndex = 0; gpTimerIndex < NUMBER_OF_GP_TIMERS; ++gpTimerIndex)
-    {
-        if (timer_gpArray[gpTimerIndex].flag_isEnabled)
-        {
-            if (timer_gpArray[gpTimerIndex].count <= 0) 
-            {
-                timer_gpArray[gpTimerIndex].flag_isEnabled = 0;
-                timer_gpArray[gpTimerIndex].flag_doEvent = 1;
-            }
-            else
-                --timer_gpArray[gpTimerIndex].count;
-        }
-    }
-}    
-
-
-// ====================================================================================================== 
-
-
-// GENERAL PURPOSE TIMER FUNCTIONS:
-
-
-// NON-BLOCKING TIMER DELAY
-// NOTE: FOR A BLOCKING DELAY, TRY:  while(timer_isActive(timerNumber)); 
-void timer_delay(uint8_t timerNumber, uint32_t milliseconds) 
-{
-    // resets the timer, then sets count to (milliseconds / TIMER_INTERVAL_MILLISECONDS), then starts the timer 
-    timer_gpArray[timerNumber].flag_isEnabled = 0;
-    timer_gpArray[timerNumber].flag_doEvent = 0;
-    timer_gpArray[timerNumber].count = milliseconds / TIMER_INTERVAL_MILLISECONDS;
-    timer_gpArray[timerNumber].flag_isEnabled = 1;
-}
-
-
-// sets enabled flag for gp timer
-void timer_start(uint8_t timerNumber) 
-{
-    timer_gpArray[timerNumber].flag_isEnabled = 1;
-}
-
-
-// clears enabled flag for gp timer
-void timer_stop(uint8_t timerNumber) 
-{
-    timer_gpArray[timerNumber].flag_isEnabled = 0;
-}
-
-
-// sets count
-void timer_setCount(uint8_t timerNumber, uint32_t count) 
-{
-    timer_gpArray[timerNumber].count = count;
-}
-
-
-// sets doEvent flag
-void timer_setDoEvent(uint8_t timerNumber) 
-{
-    timer_gpArray[timerNumber].flag_doEvent = 1;
-}
-
-
-// clears doEvent flag
-void timer_clearDoEvent(uint8_t timerNumber) 
-{
-    timer_gpArray[timerNumber].flag_doEvent = 0;
-}
-
-
-// returns true if timer is enabled and greater than 0
-bool timer_isActive(uint8_t timerNumber) 
-{
-    if (timer_gpArray[timerNumber].flag_isEnabled && timer_gpArray[timerNumber].count > 0)
-        return true;
-    else return false;
-}
-
-
-// RESETS TIMER
-void timer_reset(uint8_t timerNumber) 
-{
-    // resets all record fields to zero for gp timer
-    timer_gpArray[timerNumber].flag_isEnabled = 0;
-    timer_gpArray[timerNumber].flag_doEvent = 0;
-    timer_gpArray[timerNumber].count = 0;
-}
 
 
 // ====================================================================================================== 
