@@ -5,7 +5,7 @@
 // SPRING 2019
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERTARGET ZL1 DRIVER
-// VERSION: BETA_02
+// VERSION: BETA_03
 
 
 // ======================================================================================================
@@ -50,8 +50,9 @@
 //#define TIMER_CALIBRATION             1
 
 
-#define NUM_LEDS                      4
+#define NUMBER_OF_LEDS                      4
 
+#define NUMBER_OF_GP_TIMERS           8
 #define LED_GP_TIMER_NUMBER           7
 
 #define LED_FAST_BLINK_CYCLES         5
@@ -62,8 +63,8 @@
 #define LED_BRIGHTNESS_LOW            20
 #define LED_BRIGHTNESS_HIGH           255
 
+#define DELAY_LED_TRANSITION_EFFECT   400
 
-#define NUMBER_OF_GP_TIMERS           8
 
 #define BUTTON_DEBOUNCE_COUNT            15   // debounce count for switch button
 
@@ -95,14 +96,16 @@ struct timer32_t
 
 // VOLATILE GLOBAL VARIABLES
 
-// array of eight general purpose timer32_t records
+// Array of eight general purpose timer32_t records
 volatile timer32_t timer_gpArray[NUMBER_OF_GP_TIMERS];
-
 volatile timer32_t timer_buttonDebounce = {0, 0, BUTTON_DEBOUNCE_COUNT};
+
+// Used to cycle through the general purpose timers in the timer ISR
 volatile uint8_t gpTimerIndex = 0;
 
 volatile bool flag_isButtonEnabled = false;
-//volatile uint8_t gameMode = GAME_TARGET_PRACTICE;
+volatile bool flag_displayTransitionEffect = true;
+
 volatile uint8_t gameMode = GAME_TARGET_PRACTICE;
 
 
@@ -119,7 +122,7 @@ uint8_t LDR_register = 0;
 bool flag_isTargetHit = 0;
 
 // USED FOR LEDS
-CRGB leds[NUM_LEDS];
+CRGB leds[NUMBER_OF_LEDS];
 uint8_t ledIndex = 0;
 uint32_t colorIndex = 0;
 
@@ -140,7 +143,7 @@ void setup()
     pinMode(PIN_BUTTON_SWITCH, INPUT_PULLUP);                 // D2 input mode with pull-up resistor
   
   
-    FastLED.addLeds<WS2812, PIN_LEDS, RGB>(leds, NUM_LEDS);
+    FastLED.addLeds<WS2812, PIN_LEDS, RGB>(leds, NUMBER_OF_LEDS);
   
     // DISABLE INTERRUPTS
     cli();
@@ -183,7 +186,7 @@ void setup()
     colorIndex = 0;
     while (voice.talking())
     {
-        for (ledIndex = 0; ledIndex < NUM_LEDS; ++ledIndex)
+        for (ledIndex = 0; ledIndex < NUMBER_OF_LEDS; ++ledIndex)
         {
             leds[ledIndex] = ColorFromPalette(RainbowColors_p, colorIndex, LED_BRIGHTNESS_HIGH, LINEARBLEND);
             colorIndex += 30;
@@ -242,13 +245,34 @@ void loop()
         default:
           
             // Back to Target Practice (Game0)
-            Serial.println("Game Mode DEFAULT....");
+            Serial.println("GAME:  RESET TO DEFAULT");
             voice.say(spTARGET);
             gameMode = GAME_TARGET_PRACTICE;
     }
 
+    // BLOCK UNTIL VOICE DONE TALKING THEN DISPLAY TRANSITION EFFECT
+    while(voice.talking());
+    if (flag_displayTransitionEffect)
+    {
+        flag_displayTransitionEffect = false;
+        
+        FastLED.setBrightness(LED_BRIGHTNESS_HIGH);
+        colorIndex = 0;
+        timer_delay(LED_GP_TIMER_NUMBER, DELAY_LED_TRANSITION_EFFECT);
+        while (timer_isActive(LED_GP_TIMER_NUMBER))
+        {
+            for (ledIndex = 0; ledIndex < NUMBER_OF_LEDS; ++ledIndex)
+            {
+                leds[ledIndex] = ColorFromPalette(RainbowColors_p, colorIndex, LED_BRIGHTNESS_HIGH, LINEARBLEND);
+                colorIndex += 30;
+                FastLED.show();
+            }
+        }
+    }
     leds_setColor(CRGB::Black, LED_BRIGHTNESS_HIGH);
-    timer_delay(0, 1000);
+
+//    timer_delay(0, 1000);
+//    while(timer_isActive(0));
 }
 
 
@@ -267,10 +291,7 @@ void ISR_BUTTON_PRESSED()
         timer_buttonDebounce.flag_isEnabled = 1;
     
         ++gameMode;
-
-        // LEDS ARE TURNED OFF IN LOOP
-//        leds_setColor(CRGB::Black, LED_BRIGHTNESS_HIGH);
-    
+        flag_displayTransitionEffect = true;
     }
 }
 

@@ -1,7 +1,9 @@
 void game_targetPractice()
 {
+    leds_setColor(CRGB::Blue, LED_BRIGHTNESS_LOW);  
     while (gameMode == GAME_TARGET_PRACTICE)
-    {        
+    {      
+
         ledIndex = 0;
         if (isTargetHit()) 
         {
@@ -16,7 +18,7 @@ void game_targetPractice()
             Serial.println("HIT");
 
             leds_blinkColor(CRGB::Green, LED_BRIGHTNESS_HIGH, LED_FAST_BLINK_CYCLES, LED_FAST_DELAY_TIME, GAME_TARGET_PRACTICE);
-
+            leds_setColor(CRGB::Blue, LED_BRIGHTNESS_LOW);  
         }
     }
     
