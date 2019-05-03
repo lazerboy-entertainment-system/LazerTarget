@@ -4,7 +4,7 @@
 #define DELAY_SUCCESS           1000
 #define DELAY_ROUND_START       1500
 #define DELAY_ROUND_END         5000
-#define SPEEDUP_FACTOR          0.85
+#define SPEEDUP_FACTOR          0.7
 
 #define RAND_MIN_DEFAULT        1
 #define RAND_MAX_DEFAULT        5

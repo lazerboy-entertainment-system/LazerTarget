@@ -5,7 +5,7 @@
 // SPRING 2019
 // LAZERBOY ENTERTAINMENT SYSTEM:
 // LAZERTARGET ZL1 DRIVER
-// VERSION: BETA_03
+// VERSION: RC_01
 
 
 // ======================================================================================================

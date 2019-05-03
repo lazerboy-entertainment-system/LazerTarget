@@ -12,10 +12,9 @@ void game_draw()
         timer_delay(1, DELAY_GAME_START);
         while(timer_isActive(1) && gameMode == GAME_DRAW);
 
-        // 
         if (gameMode != GAME_DRAW) return;
-        
         voice.say(spREADY, false);
+        
         leds_setColor(CRGB::Yellow, LED_BRIGHTNESS_LOW);        
 
         timer_delay(1, DELAY_READY);
